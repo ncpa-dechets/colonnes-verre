@@ -59,11 +59,13 @@ textarea{resize:vertical;min-height:64px}
 
 #mapWrap{flex:1 1 auto;position:relative;height:100%}
 #map{position:relative;width:100%;height:100%;background:#e9e9e4}
+.mkw{width:40px;height:40px;display:flex;align-items:center;justify-content:center}
 .mk{
   width:22px;height:22px;border-radius:50%;border:3px solid #fff;
   box-shadow:0 1px 4px rgba(0,0,0,.45)}
 .mk.reste{background:var(--rouge)} .mk.fait{background:var(--ok)} .mk.hs{background:var(--inactif)}
 .mk.approx{border-color:var(--warn)}
+.mkw:active .mk{transform:scale(1.25)}
 .mk.sel{outline:3px solid #1b6ec2;outline-offset:2px}
 .cl{
   width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);
@@ -130,7 +132,9 @@ textarea{resize:vertical;min-height:64px}
     transform:translateX(-105%);transition:transform .22s ease}
   #panel.open{transform:none}
   #openFilters{display:block}
-  #fiche{width:100%;top:auto;height:88dvh;border-left:none;border-radius:14px 14px 0 0;transform:translateY(105%)}
+  #fiche{width:100%;top:auto;bottom:0;left:0;right:0;height:88dvh;
+    border-left:none;border-top:1px solid var(--bord);border-radius:14px 14px 0 0;
+    box-shadow:0 -4px 18px rgba(0,0,0,.18);transform:translateY(105%)}
   #fiche.open{transform:none}
   .seg label{min-height:52px}
 }
@@ -256,7 +260,7 @@ function toast(msg, ms) {
    refuse de s'attacher à une carte dont le zoom maximum vaut l'infini.
    Le fond vectoriel MapLibre n'en déclare aucun, contrairement à une
    couche raster — sans cette ligne, l'outil s'arrête au démarrage. */
-const map = L.map("map", { zoomControl: true, tap: false, maxZoom: 21, minZoom: 5 })
+const map = L.map("map", { zoomControl: true, maxZoom: 21, minZoom: 5 })
   .setView([49.26, -0.11], 11);
 
 /* Fond clair : OpenFreeMap Positron (vectoriel) via la passerelle MapLibre.
@@ -319,8 +323,8 @@ function icone(c) {
   const cls = DONE[c.id] ? "fait" : (inactive(c) ? "hs" : "reste");
   return L.divIcon({
     className: "",
-    html: `<div class="mk ${cls} ${c.prec <= 5 ? "approx" : ""}"></div>`,
-    iconSize: [22, 22], iconAnchor: [11, 11]
+    html: `<div class="mkw"><div class="mk ${cls} ${c.prec <= 5 ? "approx" : ""}"></div></div>`,
+    iconSize: [40, 40], iconAnchor: [20, 20]   // rond de 22px, zone tactile de 40px
   });
 }
 
