@@ -224,7 +224,6 @@ const ortho = L.tileLayer(
 );
 plan.addTo(map);
 L.control.layers({ "Plan": plan, "Satellite (IGN)": ortho }, null, { position: "topright" }).addTo(map);
-setTimeout(() => map.invalidateSize(), 300);
 
 /* ---------- regroupement (clusters) ----------
    maxClusterRadius volontairement faible : seules les colonnes
@@ -295,7 +294,7 @@ function refreshUI(fit) {
       <b>${esc(c.id)}${c.type ? ` <span class="tag">${esc(c.type)}</span>` : ""}</b>
       <span>${esc(c.adr)} — ${esc(c.commune)}</span>
     </div>`).join("") || '<div style="font-size:14px;color:#6b6b63">Aucune colonne.</div>';
-  if (fit && v.length) map.fitBounds(L.latLngBounds(v.map(c => [c.lat, c.lon])), { padding: [40, 40], maxZoom: 17 });
+  if (fit && v.length && map.getSize().x > 0) map.fitBounds(L.latLngBounds(v.map(c => [c.lat, c.lon])), { padding: [40, 40], maxZoom: 17 });
 }
 
 $("#liste").addEventListener("click", e => {
@@ -546,8 +545,24 @@ function actualiser(silencieux) {
 }
 $("#refresh").addEventListener("click", () => actualiser(false));
 
-refreshUI(true);
-actualiser(true);
+/* ---------- démarrage ----------
+   Le regroupement (markercluster) ne dessine que les points compris dans
+   l'emprise visible. Si on l'alimente alors que le conteneur de carte fait
+   encore 0 pixel de haut (layout flex pas encore calculé), il n'affiche rien
+   et ne se redessine jamais : d'où le démarrage après le chargement complet,
+   invalidateSize() puis remplissage. */
+function demarrer() {
+  map.invalidateSize();
+  refreshUI(true);
+  actualiser(true);
+  // filet de sécurité : certaines tablettes stabilisent leur layout plus tard
+  setTimeout(() => { map.invalidateSize(); refreshUI(false); }, 800);
+}
+if (document.readyState === "complete") setTimeout(demarrer, 0);
+else window.addEventListener("load", demarrer);
+
+window.addEventListener("resize", () => map.invalidateSize());
+window.addEventListener("orientationchange", () => setTimeout(() => map.invalidateSize(), 300));
 
 </script>
 </body>
