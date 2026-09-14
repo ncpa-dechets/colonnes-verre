@@ -204,7 +204,7 @@ textarea{resize:vertical;min-height:64px}
      Collez entre les guillemets l'URL du déploiement Apps Script (.../exec)
      ======================================================================= -->
 <script>
-window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxodg74Vf_81wp76l14CwW6pZVEbmosJEcyFO6bcJ5bSkpYGg9WizRi5ljMkKDHeg/exec";
+window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlN8etgMnrDmAWQdu14uwYhW7mxnWsEwsdmP77RcP2QPPV-vUi_aGmUJrolDNmgA/exec";
 </script>
 
 <script>
@@ -453,11 +453,10 @@ function openFiche(c) {
         </div>
 
         <div class="bloc">
-          <h4>Dalle béton</h4>
+          <h4>Type de revêtement au sol</h4>
           <div class="seg">
-            <input type="radio" name="dalle" id="d1" value="Oui"><label for="d1">Oui</label>
-            <input type="radio" name="dalle" id="d2" value="Non"><label for="d2">Non</label>
-            <input type="radio" name="dalle" id="d3" value="Dégradée"><label for="d3">Dégradée</label>
+            <input type="radio" name="revetement" id="d1" value="Béton / Enrobé"><label for="d1">Béton / Enrobé</label>
+            <input type="radio" name="revetement" id="d2" value="Terre"><label for="d2">Terre</label>
           </div>
         </div>
 
@@ -567,13 +566,13 @@ function envoyer() {
   if (!agent) { err.innerHTML = '<div class="erreur">Indiquez votre nom en haut de l\'écran avant d\'envoyer.</div>'; return; }
 
   const presente = !$("#p2").checked;
-  let etat = "", dalle = "", diffs = [], diffAutre = "";
+  let etat = "", revetement = "", diffs = [], diffAutre = "";
   if (presente) {
     const e = $("#fiche").querySelector("input[name=etat]:checked");
     if (!e) { err.innerHTML = '<div class="erreur">Renseignez l\'état de la borne.</div>'; return; }
-    const dd = $("#fiche").querySelector("input[name=dalle]:checked");
-    if (!dd) { err.innerHTML = '<div class="erreur">Renseignez la présence de dalle béton.</div>'; return; }
-    etat = e.value; dalle = dd.value;
+    const dd = $("#fiche").querySelector("input[name=revetement]:checked");
+    if (!dd) { err.innerHTML = '<div class="erreur">Renseignez le type de revêtement au sol.</div>'; return; }
+    etat = e.value; revetement = dd.value;
     diffs = [...$("#checks").querySelectorAll("input:checked")].map(i => i.value);
     diffAutre = $("#diffAutre").value.trim();
   }
@@ -584,7 +583,7 @@ function envoyer() {
     lat: current.lat, lon: current.lon,
     lat_corrigee: posCorr ? posCorr[0] : "", lon_corrigee: posCorr ? posCorr[1] : "",
     presence: presente ? "Présente" : "Absente / déposée",
-    etat, dalle, difficultes: diffs, difficulte_autre: diffAutre,
+    etat, revetement, difficultes: diffs, difficulte_autre: diffAutre,
     commentaire: $("#comm").value.trim(), photos
   };
 
