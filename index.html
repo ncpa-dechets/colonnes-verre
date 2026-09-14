@@ -102,6 +102,9 @@ textarea{resize:vertical;min-height:64px}
 .btn{width:100%;min-height:52px;border:none;border-radius:8px;background:var(--rouge);color:#fff;
   font:inherit;font-size:17px;font-weight:700;cursor:pointer}
 .btn:disabled{background:#bbb}
+.foot-row{display:flex;gap:8px}
+.foot-row .btn.quitter{flex:0 0 40%;background:#fff;color:var(--texte);border:1px solid var(--bord);font-weight:400;font-size:15.5px}
+.close{font-size:24px}
 .btn.sec{background:#fff;color:var(--texte);border:1px solid var(--bord);min-height:46px;font-size:15px;font-weight:400;margin-bottom:8px}
 .photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .photos .ph{position:relative;width:78px;height:78px;border-radius:6px;overflow:hidden;border:1px solid var(--bord)}
@@ -487,11 +490,15 @@ function openFiche(c) {
     </div>
     <div class="fiche-foot">
       <div id="erreur"></div>
-      <button class="btn" id="envoyer">Envoyer le relevé</button>
+      <div class="foot-row">
+        <button class="btn quitter" id="quitter">Fermer</button>
+        <button class="btn" id="envoyer">Envoyer le relevé</button>
+      </div>
     </div>`;
 
   $("#fiche").classList.add("open");
-  $("#closeFiche").onclick = closeFiche;
+  $("#closeFiche").onclick = fermerSansEnregistrer;
+  $("#quitter").onclick = fermerSansEnregistrer;
   $("#addPhoto").onclick = () => $("#fileIn").click();
   $("#fileIn").onchange = e => { if (e.target.files[0]) ajouterPhoto(e.target.files[0]); e.target.value = ""; };
   $("#corrige").onclick = corrigerPosition;
@@ -506,6 +513,25 @@ function openFiche(c) {
 
   if (map.getZoom() < 19) map.setView([c.lat, c.lon], 19); else map.panTo([c.lat, c.lon]);
 }
+
+/* Sortie sans validation. On ne demande confirmation que si quelque chose
+   a été saisi, pour ne pas alourdir le cas « je me suis trompé de point ». */
+function fiacheModifiee() {
+  const f = $("#fiche");
+  if (!f || !current) return false;
+  if (photos.length || posCorr) return true;
+  if (f.querySelector("input[name=etat]:checked") || f.querySelector("input[name=revetement]:checked")) return true;
+  if ($("#p2") && $("#p2").checked) return true;
+  if (f.querySelector("#checks") && f.querySelector("#checks").querySelector("input:checked")) return true;
+  return !!(($("#comm") && $("#comm").value.trim()) || ($("#diffAutre") && $("#diffAutre").value.trim()));
+}
+
+function fermerSansEnregistrer() {
+  if (fiacheModifiee() && !confirm("Fermer sans envoyer ? Ce qui a été saisi sur cette colonne sera perdu.")) return;
+  closeFiche();
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape" && current) fermerSansEnregistrer(); });
 
 function closeFiche() {
   $("#fiche").classList.remove("open");
