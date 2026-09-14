@@ -6,11 +6,11 @@
 <title>Vérification terrain — Colonnes à verre aériennes | NCPA</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script crossorigin="anonymous" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script crossorigin="anonymous" src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script crossorigin="anonymous" src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
+<script crossorigin="anonymous" src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
 <style>
 :root{
   --rouge:#B91E27; --vert:#B1B993; --vert-fonce:#7C8560;
@@ -254,7 +254,12 @@ function toast(msg, ms) {
 }
 
 /* ---------- carte ---------- */
-const map = L.map("map", { zoomControl: true, tap: false }).setView([49.26, -0.11], 11);
+/* maxZoom explicite : obligatoire pour le regroupement en clusters, qui
+   refuse de s'attacher à une carte dont le zoom maximum vaut l'infini.
+   Le fond vectoriel MapLibre n'en déclare aucun, contrairement à une
+   couche raster — sans cette ligne, l'outil s'arrête au démarrage. */
+const map = L.map("map", { zoomControl: true, tap: false, maxZoom: 21, minZoom: 5 })
+  .setView([49.26, -0.11], 11);
 
 /* Fond clair : OpenFreeMap Positron (vectoriel) via la passerelle MapLibre.
    Si la passerelle ou MapLibre n'a pas pu être chargée (CDN injoignable,
