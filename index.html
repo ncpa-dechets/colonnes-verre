@@ -109,6 +109,7 @@ textarea{resize:vertical;min-height:64px}
 .photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .photos .ph{position:relative;width:78px;height:78px;border-radius:6px;overflow:hidden;border:1px solid var(--bord)}
 .photos .ph img{width:100%;height:100%;object-fit:cover}
+.photos a.ph{display:block}
 .photos .ph button{position:absolute;top:2px;right:2px;border:none;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer}
 .alerte{background:#FDF3E7;border-left:4px solid var(--warn);padding:8px 10px;border-radius:0 6px 6px 0;font-size:13.5px;margin-bottom:12px}
 .erreur{background:#FBEAEA;border-left:4px solid var(--rouge);padding:10px;border-radius:0 6px 6px 0;font-size:14px;margin-bottom:10px}
@@ -426,7 +427,7 @@ function openFiche(c) {
       <button class="close" id="closeFiche">&times;</button>
     </div>
     <div class="fiche-body">
-      ${d ? `<div class="alerte">Déjà relevée par ${esc(d.agent)} le ${esc(d.date)}. Un nouvel envoi ajoutera une ligne complémentaire.</div>` : ""}
+      ${d ? `<div class="alerte">Déjà relevée par ${esc(d.agent)} le ${esc(d.date)}. Un nouvel envoi ajoutera une ligne complémentaire.${photosDrive(d.photos)}</div>` : ""}
       ${c.prec <= 5 ? `<div class="alerte">Position approximative dans la base. Si la borne n'est pas là, utilisez « Corriger la position ».</div>` : ""}
       ${c.obs ? `<div class="alerte">Observation existante : ${esc(c.obs)}</div>` : ""}
       ${inactive(c) ? `<div class="alerte">Signalée « ${esc(c.type)} » dans la base — à confirmer sur place.</div>` : ""}
@@ -560,6 +561,15 @@ function corrigerPosition() {
   );
 }
 
+/* ---------- photos déjà envoyées (stockées sur Drive) ---------- */
+function photosDrive(ids) {
+  if (!ids || !ids.length) return "";
+  return `<div class="photos">` + ids.map(id =>
+    `<a class="ph" href="https://drive.google.com/file/d/${encodeURIComponent(id)}/view" target="_blank" rel="noopener">` +
+    `<img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w400" alt="Photo" loading="lazy" referrerpolicy="no-referrer"></a>`
+  ).join("") + `</div>`;
+}
+
 /* ---------- photos ---------- */
 function ajouterPhoto(file) {
   if (photos.length >= 3) return toast("3 photos maximum.");
@@ -623,12 +633,13 @@ function envoyer() {
     .then(r => r.json())
     .then(res => {
       if (!res || res.statut !== "ok") throw new Error(res && res.message ? res.message : "Réponse inattendue du serveur");
-      DONE[current.id] = { agent, date: new Date().toLocaleDateString("fr-FR") };
+      DONE[current.id] = { agent, date: new Date().toLocaleDateString("fr-FR"), photos: (DONE[current.id] && DONE[current.id].photos) || [] };
       saveDone();
       if (posCorr) markers[current.id].setLatLng(posCorr);
       majMarqueur(current);
       toast("Relevé enregistré : " + current.id);
       closeFiche(); refreshUI(false);
+      actualiser(true); // récupère les liens des photos tout juste envoyées
     })
     .catch(e => {
       err.innerHTML = `<div class="erreur"><b>Échec de l'envoi.</b> Rien n'est perdu : votre saisie est toujours à l'écran.
@@ -643,7 +654,7 @@ function actualiser(silencieux) {
     .then(r => r.json())
     .then(res => {
       if (!res || !res.faits) return;
-      res.faits.forEach(f => { DONE[f.id] = { agent: f.agent, date: f.date }; });
+      res.faits.forEach(f => { DONE[f.id] = { agent: f.agent, date: f.date, photos: f.photos || [] }; });
       saveDone(); refreshUI(false);
       if (!silencieux) toast(res.faits.length + " colonne(s) déjà relevée(s)");
     })
