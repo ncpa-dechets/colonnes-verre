@@ -112,6 +112,16 @@ textarea{resize:vertical;min-height:64px}
 .photos a.ph{display:block}
 .resume{border:1px solid var(--bord);border-left:4px solid var(--doux);border-radius:8px;padding:10px;margin-bottom:14px;background:var(--gris);font-size:14px}
 .resume h4{margin:0 0 6px}
+#lb{position:fixed;inset:0;z-index:1500;background:rgba(20,20,18,.92);display:none;align-items:center;justify-content:center;touch-action:pan-y}
+#lb.open{display:flex}
+#lb img{max-width:94vw;max-height:80vh;object-fit:contain;border-radius:4px;background:#333}
+#lb .lb-btn{position:absolute;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:28px;line-height:1;width:48px;height:48px;border-radius:50%;cursor:pointer}
+#lb .lb-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#lb .lb-close{top:calc(12px + env(safe-area-inset-top));right:12px}
+#lb .lb-prev{left:10px;top:50%;transform:translateY(-50%)}
+#lb .lb-next{right:10px;top:50%;transform:translateY(-50%)}
+#lb .lb-bas{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#ddd;font-size:14px}
+#lb .lb-bas a{color:#fff;margin-left:12px}
 .resume p{margin:0 0 6px;color:var(--doux)}
 .resume dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0}
 .resume dt{color:var(--doux)}
@@ -586,10 +596,61 @@ function resumeReleve(d) {
 function photosDrive(ids) {
   if (!ids || !ids.length) return "";
   return `<div class="photos">` + ids.map(id =>
-    `<a class="ph" href="https://drive.google.com/file/d/${encodeURIComponent(id)}/view" target="_blank" rel="noopener">` +
+    `<a class="ph" data-lb="${esc(id)}" href="https://drive.google.com/file/d/${encodeURIComponent(id)}/view" target="_blank" rel="noopener">` +
     `<img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w400" alt="Photo" loading="lazy" referrerpolicy="no-referrer"></a>`
   ).join("") + `</div>`;
 }
+
+/* ---------- agrandissement des photos (lightbox) ---------- */
+const LB = { ids: [], i: 0 };
+document.body.insertAdjacentHTML("beforeend", `
+  <div id="lb" role="dialog" aria-modal="true" aria-label="Photo agrandie">
+    <img alt="Photo agrandie">
+    <button class="lb-btn lb-close" aria-label="Fermer">&times;</button>
+    <button class="lb-btn lb-prev" aria-label="Photo précédente">&#8249;</button>
+    <button class="lb-btn lb-next" aria-label="Photo suivante">&#8250;</button>
+    <div class="lb-bas"><span class="lb-num"></span><a target="_blank" rel="noopener">Ouvrir dans Drive</a></div>
+  </div>`);
+const lb = $("#lb");
+function lbMontrer() {
+  const id = LB.ids[LB.i], n = LB.ids.length;
+  lb.querySelector("img").src = "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w1600";
+  lb.querySelector(".lb-num").textContent = n > 1 ? (LB.i + 1) + " / " + n : "";
+  lb.querySelector(".lb-bas a").href = "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/view";
+  lb.querySelector(".lb-prev").style.display = lb.querySelector(".lb-next").style.display = n > 1 ? "" : "none";
+}
+function lbOuvrir(ids, i) { LB.ids = ids; LB.i = i; lbMontrer(); lb.classList.add("open"); lb.querySelector(".lb-close").focus(); }
+function lbFermer() { lb.classList.remove("open"); lb.querySelector("img").src = ""; }
+function lbPas(d) { LB.i = (LB.i + d + LB.ids.length) % LB.ids.length; lbMontrer(); }
+// un appui sur une miniature ouvre la lightbox au lieu d'un nouvel onglet
+document.addEventListener("click", e => {
+  const a = e.target.closest("a.ph[data-lb]");
+  if (!a) return;
+  e.preventDefault();
+  const liens = [...a.parentNode.querySelectorAll("a.ph[data-lb]")];
+  lbOuvrir(liens.map(x => x.dataset.lb), liens.indexOf(a));
+});
+lb.querySelector(".lb-close").onclick = lbFermer;
+lb.querySelector(".lb-prev").onclick = () => lbPas(-1);
+lb.querySelector(".lb-next").onclick = () => lbPas(1);
+lb.addEventListener("click", e => { if (e.target === lb) lbFermer(); }); // appui hors de la photo
+// clavier : Échap ferme la photo (sans fermer la fiche), flèches pour naviguer
+window.addEventListener("keydown", e => {
+  if (!lb.classList.contains("open")) return;
+  if (e.key === "Escape") lbFermer();
+  else if (e.key === "ArrowLeft") lbPas(-1);
+  else if (e.key === "ArrowRight") lbPas(1);
+  else return;
+  e.stopPropagation(); e.preventDefault();
+}, true);
+// tablette : glisser le doigt à gauche / à droite
+let lbX = null;
+lb.addEventListener("touchstart", e => { lbX = e.touches[0].clientX; }, { passive: true });
+lb.addEventListener("touchend", e => {
+  if (lbX === null || LB.ids.length < 2) return;
+  const dx = e.changedTouches[0].clientX - lbX; lbX = null;
+  if (Math.abs(dx) > 50) lbPas(dx < 0 ? 1 : -1);
+});
 
 /* ---------- photos ---------- */
 function ajouterPhoto(file) {
