@@ -110,6 +110,12 @@ textarea{resize:vertical;min-height:64px}
 .photos .ph{position:relative;width:78px;height:78px;border-radius:6px;overflow:hidden;border:1px solid var(--bord)}
 .photos .ph img{width:100%;height:100%;object-fit:cover}
 .photos a.ph{display:block}
+.resume{border:1px solid var(--bord);border-left:4px solid var(--doux);border-radius:8px;padding:10px;margin-bottom:14px;background:var(--gris);font-size:14px}
+.resume h4{margin:0 0 6px}
+.resume p{margin:0 0 6px;color:var(--doux)}
+.resume dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0}
+.resume dt{color:var(--doux)}
+.resume dd{margin:0}
 .photos .ph button{position:absolute;top:2px;right:2px;border:none;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer}
 .alerte{background:#FDF3E7;border-left:4px solid var(--warn);padding:8px 10px;border-radius:0 6px 6px 0;font-size:13.5px;margin-bottom:12px}
 .erreur{background:#FBEAEA;border-left:4px solid var(--rouge);padding:10px;border-radius:0 6px 6px 0;font-size:14px;margin-bottom:10px}
@@ -427,7 +433,7 @@ function openFiche(c) {
       <button class="close" id="closeFiche">&times;</button>
     </div>
     <div class="fiche-body">
-      ${d ? `<div class="alerte">Déjà relevée par ${esc(d.agent)} le ${esc(d.date)}. Un nouvel envoi ajoutera une ligne complémentaire.${photosDrive(d.photos)}</div>` : ""}
+      ${d ? resumeReleve(d) : ""}
       ${c.prec <= 5 ? `<div class="alerte">Position approximative dans la base. Si la borne n'est pas là, utilisez « Corriger la position ».</div>` : ""}
       ${c.obs ? `<div class="alerte">Observation existante : ${esc(c.obs)}</div>` : ""}
       ${inactive(c) ? `<div class="alerte">Signalée « ${esc(c.type)} » dans la base — à confirmer sur place.</div>` : ""}
@@ -561,6 +567,21 @@ function corrigerPosition() {
   );
 }
 
+/* ---------- résumé du dernier relevé (lecture seule) ---------- */
+function resumeReleve(d) {
+  const lignes = [
+    ["Présence", d.presence], ["État", d.etat], ["Revêtement", d.revetement],
+    ["Difficultés", d.difficultes], ["Autre difficulté", d.difficulte_autre],
+    ["Commentaire", d.commentaire], ["Position", d.pos_corrigee ? "corrigée sur le terrain" : ""]
+  ].filter(l => l[1]);
+  return `<div class="resume">
+    <h4>Dernier relevé</h4>
+    <p>Par ${esc(d.agent)} le ${esc(d.date)}. Un nouvel envoi ajoutera une ligne complémentaire.</p>
+    ${lignes.length ? `<dl>${lignes.map(l => `<dt>${esc(l[0])}</dt><dd>${esc(l[1])}</dd>`).join("")}</dl>` : ""}
+    ${photosDrive(d.photos)}
+  </div>`;
+}
+
 /* ---------- photos déjà envoyées (stockées sur Drive) ---------- */
 function photosDrive(ids) {
   if (!ids || !ids.length) return "";
@@ -633,7 +654,13 @@ function envoyer() {
     .then(r => r.json())
     .then(res => {
       if (!res || res.statut !== "ok") throw new Error(res && res.message ? res.message : "Réponse inattendue du serveur");
-      DONE[current.id] = { agent, date: new Date().toLocaleDateString("fr-FR"), photos: (DONE[current.id] && DONE[current.id].photos) || [] };
+      DONE[current.id] = {
+        agent, date: new Date().toLocaleDateString("fr-FR"),
+        presence: payload.presence, etat, revetement: payload.revetement,
+        difficultes: diffs.join(" | "), difficulte_autre: diffAutre,
+        commentaire: payload.commentaire, pos_corrigee: !!posCorr,
+        photos: (DONE[current.id] && DONE[current.id].photos) || []
+      };
       saveDone();
       if (posCorr) markers[current.id].setLatLng(posCorr);
       majMarqueur(current);
@@ -654,7 +681,7 @@ function actualiser(silencieux) {
     .then(r => r.json())
     .then(res => {
       if (!res || !res.faits) return;
-      res.faits.forEach(f => { DONE[f.id] = { agent: f.agent, date: f.date, photos: f.photos || [] }; });
+      res.faits.forEach(f => { DONE[f.id] = Object.assign({}, f, { photos: f.photos || [] }); });
       saveDone(); refreshUI(false);
       if (!silencieux) toast(res.faits.length + " colonne(s) déjà relevée(s)");
     })
